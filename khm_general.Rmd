@@ -1,0 +1,89 @@
+---
+title: "KHM"
+author: "Louis Chua"
+date: "2024-06-17"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(mapsf)
+library(sf)
+library(leaflet)
+library(htmlwidgets)
+
+setwd("/Users/louischua/Documents/KHM_Coral")
+```
+
+Import Ahupuaa map (State GIS portal; updated 7 March 2024), and isolate the 6 we are focusing on
+
+```{r}
+ahu <- "/Users/louischua/data/Geospatial/ahupuaa/Ahupuaa.shp"
+ahu <- st_make_valid(st_read(ahu))
+ahu <- st_transform(ahu, crs = 4326)
+```
+
+```{r}
+# Select only Molokaʻi ahupuaʻa
+ahu_mol <- ahu[ahu$mokupuni == "Molokaʻi",]
+
+# Create a list of ahupuaʻa of interest
+aoi <- c("Kamiloloa", "Makakupa‘ia", "Kawela", 
+         "Mākolelau", "Kapuaoko‘olau", "Kamalō")
+
+# Filter the ahupuaa of interest
+ahu_KHM <- subset(ahu_mol, ahupuaa %in% aoi)
+```
+
+```{r}
+# Create map
+mf_map(ahu_KHM)
+
+# Label ahupuaa
+mf_label(x = ahu_KHM, var = "ahupuaa", 
+         halo = TRUE, overlap = FALSE, cex = .6)
+
+# Plot a scale bar
+mf_scale(size = 10, pos = "bottomleft")
+
+# Plot a north arrow
+mf_arrow("topleft")
+
+# Apply theme (optional, for ggplot2 usage)
+theme(panel.background = element_rect(fill='transparent'),
+  plot.background = element_rect(fill='transparent', color=NA),
+  panel.grid.major = element_blank(),
+  panel.grid.minor = element_blank(),
+  legend.background = element_rect(fill='transparent'),
+  legend.box.background = element_blank())
+
+```
+
+```{r}
+
+q <- leaflet() %>% 
+  addProviderTiles("Esri.WorldImagery") %>%
+  addMiniMap(
+    position = "topright",
+    tiles = providers$Esri.WorldStreetMap,
+    toggleDisplay = TRUE,
+    minimized = FALSE
+  ) %>%
+  setView(lng = -156.949566, lat = 21.060021, zoom = 10) %>% 
+  addPolygons(data = ahu_KHM,
+              group = "Ahupuaʻa",
+              color = "#c6a88e", 
+              fillOpacity = 0.5,
+              highlight = highlightOptions(color = 'white', weight = 1),
+              popup = ~ahupuaa) %>% 
+  addLayersControl(
+    overlayGroups = c("Ahupuaʻa"),
+    options = layersControlOptions(collapsed = FALSE)
+  )
+
+
+# Print the map
+q
+
+```
+
